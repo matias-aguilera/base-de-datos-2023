@@ -1,0 +1,156 @@
+
+--Implementar un bloque anónimo que permita ingresar un sorteo válido.
+--El código del tipo de juego debe ser ingresado por el usuario. Si ya existe
+--un sorteo para ese código, en el bloque se deberá generar el valor del
+--número de sorteo, manteniendo la secuencia; en caso contrario deberá
+--iniciar en uno.
+--La fecha de realización del sorteo deberá ser en 7 días más, respecto a
+--la fecha en que se registra dicho sorteo. Un sorteo vence a los 60 días de
+--haberse efectuado.
+--El pozo lo ingresa el usuario.
+--Tener presente las restricciones de integridad al momento de ingresar o
+--generar los datos.
+--Aplicar excepciones, si corresponde
+
+
+set serveroutput on 
+
+
+
+declare
+codTJ sorteo.codigoTJ%type
+existe number (1,0);
+nroST sorteo.numeroST%type;
+pozo sorteo.pozoST%type;
+
+
+error_pozo exception;
+
+begin
+
+codTJ := &codigo_tipo_juego;
+
+
+	select count (codigoTJ) into existe from sorteo where codigoTJ=codTJ;
+
+	if(existe=0) then
+		nroST :=1;
+
+	else
+		select max(numeroST) into nroST from sorteo where codigoTJ=codTJ;
+	end if;
+
+		pozo :=&ingrese_pozo;
+
+		if(pozo not between 150000000 and 8000000000) then
+		 raise error_pozo;
+		
+		
+      		else
+				insert into sorteo values (codTJ,nroST, to_date(sysdate)+7, pozo, to_date(sysdate)+67);
+	 
+	end if;
+		 
+	
+
+
+
+
+exception
+
+when error_pozo then dbms_output.put_line ('valor del pozo incorrecto');
+
+when others then dbms_output.put_line ('valor exede el tamaño de tipo de dato');
+
+end;
+
+
+
+
+--Implementar un bloque anónimo que permita ingresar una apuesta
+--para el último sorteo ingresado de un tipo de juego en particular.
+--Analizar situaciones posibles
+--Tener presente las restricciones de integridad
+--Aplicar excepciones, si corresponde
+
+
+set serveroutput on
+
+
+declare 
+
+codTJ  sorteo.codigoTJ%type,
+existe number(1,0);
+nroST sorteo.numeroST%type
+fecha date;
+codAG apuesta-codigoAG%type;
+maxAP apuesta.codigoAP%type;
+
+error_codigo exception
+sorteo_vencido exception
+error_agencia exception;
+
+begin 
+
+codTJ:=&codigo_juego;
+
+select count(codigoTJ) into existe from sorteo where codigoTJ=codTJ;
+
+if (existe =0)then
+	raise error_codigo;
+else
+	select max(numeroST) into nroST from sorteo where codigoTJ=codTJ;
+
+	select fechaST into fecha from sorteo where codigoTJ=codTJ and numeroST=nroST;
+
+	if(fecha<= to_date(sysdate)) then
+	raise sorteo_vencido;
+	else
+		
+		codAG :=&codigo_agerncia;
+		
+		select count(codigoAG) into existe from agencia  where codigoAG=codAG;
+
+		if(existe=0) then
+			raise error_agencia;
+		else
+	
+			select nvl(max(codigoAP),0) into maxAP from apuesta ;
+
+			insert into apuesta values (maxAP,to_date(sysdate), codTJ,nroST,null, null,null,null,null,codAG,0);
+		end if;
+
+	end if;
+	
+
+end if;
+
+exception
+when error_codigo then dbms_output.put_line ('el codigo que ingreso no es valido');
+when sorteo_vencido then dbms_output.put_line ('sorteo ya efectuado');
+when error_agencia then dbms_output.put_line ('agencia no encontrada');
+
+
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
